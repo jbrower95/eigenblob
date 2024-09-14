@@ -1,0 +1,32 @@
+{
+  "name": "@jbrower95/eigenblob",
+  "version": "1.0.0",
+  "description": "Post blobs to EigenLayer.",
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "package.json",
+    "tsconfig.json"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "proto": "./scripts/proto.sh",
+    "test": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jbrower95/eigenblob.git"
+  },
+  "keywords": [
+    "EigenLayer"
+  ],
+  "author": "Justin Brower",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jbrower95/eigenblob/issues"
+  },
+  "homepage": "https://github.com/jbrower95/eigenblob#readme",
+  "dependencies": {
+    "grpc-web": "^1.5.0"
+  }
+}
