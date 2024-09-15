@@ -69,6 +69,12 @@ const toUint8Array = async (stream: ReadableStream): Promise<Uint8Array> => {
     return combined;
 };
 
+const MB = 1024 * 1024;
+
+function lessThan2MB(uint8Array: Uint8Array) {
+    return uint8Array.length < (2 * MB);
+}
+
 /**
  * A simple wrapper around EigenDA which;
  *      - automatically applies gzip(JSON(object)) before uploading.
@@ -111,6 +117,12 @@ export class EigenDA {
                         toStream(new TextEncoder().encode(contents))
                             .pipeThrough(new CompressionStream('gzip'))
                     );
+                    if (!lessThan2MB(blob)) {
+                        throw new Error(`blob too large -- maximum compressed size is 2mb (got ${blob.length / MB}mb)`)
+                    }
+
+                    // eigen-da supports 2mb blobs max.
+                    blob.length
 
                     const resp = await this.client.disperseBlob(
                         new DisperseBlobRequest()
