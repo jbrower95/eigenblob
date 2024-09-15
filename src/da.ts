@@ -121,9 +121,6 @@ export class EigenDA {
                         throw new Error(`blob too large -- maximum compressed size is 2mb (got ${blob.length / MB}mb)`)
                     }
 
-                    // eigen-da supports 2mb blobs max.
-                    blob.length
-
                     const resp = await this.client.disperseBlob(
                         new DisperseBlobRequest()
                             .setAccountId(EigenDA.ACCOUNT)
