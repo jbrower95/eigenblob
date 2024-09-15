@@ -1,6 +1,6 @@
 import * as jspb from 'google-protobuf'
 
-import * as common_common_pb from '../common/common_pb'; // proto import: "common/common.proto"
+import * as common_common_pb from './common_pb'; // proto import: "common/common.proto"
 
 
 export class AuthenticatedRequest extends jspb.Message {
