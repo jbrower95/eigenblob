@@ -1,5 +1,7 @@
 # EigenBlob
 
+**🚧 Warning -- This is under active development. It literally doesn't work yet. 🚧**
+
 ![Unit Tests](https://github.com/jbrower95/eigenblob/actions/workflows/test.yaml/badge.svg)
 
 EigenBlob is a convenience library that wraps [EigenDA](https://github.com/Layr-Labs/eigenda) for usage
