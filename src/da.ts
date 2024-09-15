@@ -162,14 +162,13 @@ export class EigenDA {
             new RetrieveBlobRequest()
                 .setBlobIndex(Number(blobId))
         );
-        const contents = blob.getData() as Uint8Array;
-
-        return JSON.parse(
-            await streamToString(
-                toStream(contents)
-                    .pipeThrough(new DecompressionStream('gzip'))
-            )
-        ) as T;
+        const compressedContents = blob.getData() as Uint8Array;
+        try {
+            const contentsAsText =  await streamToString(toStream(compressedContents).pipeThrough(new DecompressionStream('gzip')))
+            return JSON.parse(contentsAsText) as T;
+        } catch (e) {
+            throw new Error(`invalid blob -- this blob was likely not uploaded with eigenblob.`, {cause: e});
+        }
     }
 }
 
