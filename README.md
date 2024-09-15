@@ -11,7 +11,7 @@ in web and server applications.
 
 ## Installation
 
-`npm install @jbrower95/eigenblob`
+~~`npm install @jbrower95/eigenblob`~~ This is not yet available.
 
 ## Sample Usage
 
