@@ -32,6 +32,8 @@ type EigenBlob = {
 export class EigenDA {
     client: DisperserClient;
 
+    static ACCOUNT = "eigenda-ts"
+
     constructor(options: TEigenDaOptions) {
         this.client = new DisperserClient(options.URL.toString());
     }
@@ -60,7 +62,7 @@ export class EigenDA {
 
                     const resp = await this.client.disperseBlob(
                         new DisperseBlobRequest()
-                            .setAccountId("eigenda-ts")
+                            .setAccountId(EigenDA.ACCOUNT)
                             .setData(blob)
                     )
                     const [requestId, result] = [resp.getRequestId(), resp.getResult()];
