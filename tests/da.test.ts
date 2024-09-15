@@ -14,11 +14,11 @@ global.DecompressionStream = DecompressionStream;
 
 const SECONDS = 1000;
 
-it("should post a blob", async () => {
+it("should be able to post a blob", async () => {
     const client = new EigenDA({mainnet: false});
 
     const resp = await client.put({hello: 'world'});
     const blob = await client.get<any>(resp.id);
 
     expect(blob.hello).toEqual('world');
-}, 60 * SECONDS);
+}, 30 * SECONDS);
