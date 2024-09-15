@@ -15,7 +15,7 @@ global.DecompressionStream = DecompressionStream;
 const SECONDS = 1000;
 
 it("should be able to post a blob", async () => {
-    const client = new EigenDA({mainnet: false});
+    const client = new EigenDA(); // defaults to testnet
 
     const resp = await client.put({hello: 'world'});
     const blob = await client.get<any>(resp.id);

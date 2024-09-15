@@ -89,8 +89,8 @@ export class EigenDA {
     static ACCOUNT = "eigenda-ts"
     static URI_TESTNET = "disperser-holesky.eigenda.xyz:443"
 
-    constructor(options: TEigenDaOptions) {
-        if (options.mainnet) {
+    constructor(options?: TEigenDaOptions) {
+        if (options?.mainnet) {
             throw new Error("permissionless access to mainnet is not yet available.");
         }
         this.client = new DisperserClient(EigenDA.URI_TESTNET);
