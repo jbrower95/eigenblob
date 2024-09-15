@@ -1,8 +1,8 @@
-import { BlobStatus, BlobStatusRequest, DisperseBlobRequest, RetrieveBlobRequest } from "./gen/disperser_pb";
-import { DisperserClient } from "./gen/DisperserServiceClientPb";
+import { BlobStatus, BlobStatusRequest, DisperseBlobRequest, RetrieveBlobRequest } from "./gen/disperser/disperser_pb";
+import { DisperserClient } from "./gen/disperser/DisperserServiceClientPb";
 
 type TEigenDaOptions = {
-    URL: URL;
+    mainnet: boolean
 };
 
 type TPutOptions = {
@@ -21,6 +21,54 @@ type EigenBlob = {
     id: bigint;
 }
 
+const toStream = (arr: Uint8Array) => {
+    return new ReadableStream({
+        start(controller) {
+            controller.enqueue(arr);
+            controller.close();
+        }
+    });
+}
+
+const streamToString = async (stream: ReadableStream): Promise<string> => {
+    const reader = stream.getReader();
+    let result = '';
+    const decoder = new TextDecoder();
+
+    let chunk;
+    while (!(chunk = await reader.read()).done) {
+        result += decoder.decode(chunk.value, { stream: true });
+    }
+
+    // Ensure the final part of the text is decoded
+    result += decoder.decode();
+    return result;
+};
+
+
+const toUint8Array = async (stream: ReadableStream): Promise<Uint8Array> => {
+    const reader = stream.getReader();
+    const chunks: Uint8Array[] = [];
+    let length = 0;
+
+    // Accumulate all chunks from the stream
+    let result: ReadableStreamReadResult<any>;
+    while (!(result = await reader.read()).done) {
+        chunks.push(result.value);
+        length += result.value.length;
+    }
+
+    // Combine all chunks into a single Uint8Array
+    const combined = new Uint8Array(length);
+    let position = 0;
+    for (const chunk of chunks) {
+        combined.set(chunk, position);
+        position += chunk.length;
+    }
+
+    return combined;
+};
+
 /**
  * A simple wrapper around EigenDA which;
  *      - automatically applies gzip(JSON(object)) before uploading.
@@ -33,18 +81,22 @@ export class EigenDA {
     client: DisperserClient;
 
     static ACCOUNT = "eigenda-ts"
+    static URI_TESTNET = "disperser-holesky.eigenda.xyz:443"
 
     constructor(options: TEigenDaOptions) {
-        this.client = new DisperserClient(options.URL.toString());
+        if (options.mainnet) {
+            throw new Error("permissionless access to mainnet is not yet available.");
+        }
+        this.client = new DisperserClient(EigenDA.URI_TESTNET);
     }
 
-    put<T>(item: T, options: TPutOptions): Promise<EigenBlob> {  
+    put<T>(item: T, options?: TPutOptions): Promise<EigenBlob> {  
         return new Promise((resolve, reject) => {
             const didTimeout = {
                 did: false,
                 completed: false,
             };
-            if (options.maxTimeoutMs) {
+            if (options?.maxTimeoutMs) {
                 setTimeout(() => {
                     if (!didTimeout.completed) {
                         didTimeout.did = true;
@@ -55,10 +107,10 @@ export class EigenDA {
             (async () => {
                 try {
                     let contents = JSON.stringify(item);
-                    const blob = 
-                        new Uint8Array(await new Response(new Blob([ contents ], {type: 'application/json'})
-                            .stream()
-                            .pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+                    const blob = await toUint8Array(
+                        toStream(new TextEncoder().encode(contents))
+                            .pipeThrough(new CompressionStream('gzip'))
+                    );
 
                     const resp = await this.client.disperseBlob(
                         new DisperseBlobRequest()
@@ -103,10 +155,12 @@ export class EigenDA {
         );
         const contents = blob.getData() as Uint8Array;
 
-        return JSON.parse(await new Response(new Blob([contents])
-                .stream()
-                .pipeThrough(new DecompressionStream('gzip')))
-                .text()) as T;
+        return JSON.parse(
+            await streamToString(
+                toStream(contents)
+                    .pipeThrough(new DecompressionStream('gzip'))
+            )
+        ) as T;
     }
 }
 
