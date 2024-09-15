@@ -21,4 +21,4 @@ it("should be able to post a blob", async () => {
     const blob = await client.get<any>(resp.id);
 
     expect(blob.hello).toEqual('world');
-}, 30 * SECONDS);
+}, 15 * SECONDS);
