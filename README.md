@@ -2,7 +2,7 @@
 
 **🚧 Warning -- This is under active development. It literally doesn't work yet. 🚧**
 
-**Disclosure -- This is a third party library. This repository is not affiliated with Eigen Labs, Layr Labs, or any related entity. Use at your own risk. See LICENSE**
+**Disclosure -- This is a third party library. This repository is not affiliated with Eigen Labs, Layr Labs, or any related entity. Use at your own risk. See LICENSE for more info.**
 
 ![Unit Tests](https://github.com/jbrower95/eigenblob/actions/workflows/test.yaml/badge.svg)
 
