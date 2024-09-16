@@ -11,7 +11,8 @@
   "scripts": {
     "build": "tsc",
     "proto": "./scripts/proto.sh",
-    "test": "jest"
+    "test": "jest",
+    "envoy": "envoy -c ./envoy.yaml"
   },
   "repository": {
     "type": "git",

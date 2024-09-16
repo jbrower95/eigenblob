@@ -1,78 +1,19 @@
 import { BlobStatus, BlobStatusRequest, DisperseBlobRequest, RetrieveBlobRequest } from "./gen/disperser/disperser_pb";
 import { DisperserClient } from "./gen/disperser/DisperserServiceClientPb";
+import { sleep, toStream, streamToString, toUint8Array, lessThan2MB, MB} from './utils';
 
 type TEigenDaOptions = {
-    mainnet: boolean
+    uri: "mainnet" | "testnet" | `http://${string}` | `https://${string}`;
 };
 
 type TPutOptions = {
     maxTimeoutMs: number
 }
 
-let sleep = (timeMs: number) => {
-    return new Promise((resolve) => {
-        setTimeout(resolve, timeMs)
-    })
-}
-
 const BlobPollPeriodMs = 1000;
 
 type EigenBlob = {
     id: bigint;
-}
-
-const toStream = (arr: Uint8Array) => {
-    return new ReadableStream({
-        start(controller) {
-            controller.enqueue(arr);
-            controller.close();
-        }
-    });
-}
-
-const streamToString = async (stream: ReadableStream): Promise<string> => {
-    const reader = stream.getReader();
-    let result = '';
-    const decoder = new TextDecoder();
-
-    let chunk;
-    while (!(chunk = await reader.read()).done) {
-        result += decoder.decode(chunk.value, { stream: true });
-    }
-
-    // Ensure the final part of the text is decoded
-    result += decoder.decode();
-    return result;
-};
-
-
-const toUint8Array = async (stream: ReadableStream): Promise<Uint8Array> => {
-    const reader = stream.getReader();
-    const chunks: Uint8Array[] = [];
-    let length = 0;
-
-    // Accumulate all chunks from the stream
-    let result: ReadableStreamReadResult<any>;
-    while (!(result = await reader.read()).done) {
-        chunks.push(result.value);
-        length += result.value.length;
-    }
-
-    // Combine all chunks into a single Uint8Array
-    const combined = new Uint8Array(length);
-    let position = 0;
-    for (const chunk of chunks) {
-        combined.set(chunk, position);
-        position += chunk.length;
-    }
-
-    return combined;
-};
-
-const MB = 1024 * 1024;
-
-function lessThan2MB(uint8Array: Uint8Array) {
-    return uint8Array.length < (2 * MB);
 }
 
 /**
@@ -90,10 +31,19 @@ export class EigenDA {
     static URI_TESTNET = "disperser-holesky.eigenda.xyz:443"
 
     constructor(options?: TEigenDaOptions) {
-        if (options?.mainnet) {
-            throw new Error("permissionless access to mainnet is not yet available.");
+        switch (options?.uri) {
+            case 'mainnet':
+                throw new Error("permissionless access to mainnet is not yet available.");
+            case 'testnet':
+                this.client = new DisperserClient(EigenDA.URI_TESTNET);
+                break;
+            default:
+                if (!options?.uri) {
+                    this.client = new DisperserClient(EigenDA.URI_TESTNET);
+                } else {
+                    this.client = new DisperserClient(options!.uri);
+                }
         }
-        this.client = new DisperserClient(EigenDA.URI_TESTNET);
     }
 
     put<T>(item: T, options?: TPutOptions): Promise<EigenBlob> {  
