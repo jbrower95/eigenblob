@@ -11,7 +11,10 @@
   "scripts": {
     "build": "tsc",
     "proto": "./scripts/proto.sh",
-    "test": "jest",
+    "test": "NODE_TLS_REJECT_UNAUTHORIZED=0 jest",
+    "start-nginx": "nginx -c $(realpath ./nginx.conf)",
+    "kill-nginx": "sudo pkill nginx",
+    "logs-nginx": "tail -f /opt/homebrew/var/log/nginx/access.log & tail -f /opt/homebrew/var/log/nginx/error.log",
     "envoy": "envoy -c ./envoy.yaml"
   },
   "repository": {
@@ -37,6 +40,7 @@
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "ts-jest": "^29.2.5",
-    "typescript": "^5.6.2"
+    "typescript": "^5.6.2",
+    "xmlhttprequest": "^1.8.0"
   }
 }
