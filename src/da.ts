@@ -123,9 +123,13 @@ export class EigenDA {
                         throw new Error('Failed to obtain Blob ID or Batch Header Hash');
                     }
 
-                    resolve(new EigenBlob<T>(
-                        [blobId!, batchHeaderHash!],
-                    ));
+                    if (latestRes == BlobStatus.CONFIRMED) {
+                        resolve(new EigenBlob<T>(
+                            [blobId!, batchHeaderHash!],
+                        ));
+                    } else {
+                        reject(new Error(`failed to confirm (code=${latestRes})`));
+                    }
                 } catch(e) {
                    console.error('Error in put operation:', e);
                    reject(e)
