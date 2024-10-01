@@ -22,9 +22,12 @@ const client = new EigenDA(); // defaults to testnet
 const resp = await client.put({hello: 'world'});
 
 // you can use the `resp.id` to fetch this item back from anywhere.
-const blob = await client.get<any>(resp.id);
-
+const blob = await client.get(resp);
 expect(blob.hello).toEqual('world');
+
+// if you want to be able to fetch the blob later, just serialize `resp`.
+window.localStorage.setItem("my-blob", resp.toString()); // set
+const resp = EigenBlob.from(window.localStorage.getItem("my-blob"));
 ```
 
 ## Under the hood
@@ -35,6 +38,8 @@ before returning.
 
 ## Constraints
 
+- A `.put()` can take 30-60s.
+- A `.get()` is typically much faster, on the order of seconds.
 - Blobs can't be more than 2MB in size.
 - Blobs exist for 14 days on the network.
 - Testnet's free tier is limited to 1.28 kb/s. ([source](https://www.blog.eigenlayer.xyz/eigenda-updated-pricing/)).
