@@ -4,7 +4,6 @@ export const sleep = (timeMs: number) => {
     })
 }
 
-
 export const toStream = (arr: Uint8Array) => {
     return new ReadableStream({
         start(controller) {
@@ -28,6 +27,32 @@ export const streamToString = async (stream: ReadableStream): Promise<string> =>
     result += decoder.decode();
     return result;
 };
+
+export function base64ToUint8Array(base64: string) {
+    // Decode the Base64 string to a binary string
+    const binaryString = atob(base64);
+    
+    // Create a Uint8Array from the binary string
+    const length = binaryString.length;
+    const bytes = new Uint8Array(length);
+    
+    for (let i = 0; i < length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    return bytes;
+}
+
+export const toBase64 = (input: Uint8Array | string) => {
+    if (input instanceof Uint8Array) {
+        const binaryString = Array.from(input, byte => String.fromCharCode(byte)).join('');
+        return btoa(binaryString);
+    } else if (typeof input === 'string') {
+        return btoa(input);
+    } else {
+        throw new TypeError('Input must be a Uint8Array or a string');
+    }
+}
 
 export const streamToBase64 = async (stream: ReadableStream): Promise<string> => {
     const reader = stream.getReader();

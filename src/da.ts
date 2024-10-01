@@ -1,6 +1,6 @@
 import { BlobStatus, BlobStatusRequest, DisperseBlobRequest, RetrieveBlobRequest } from "./gen/disperser/disperser_pb";
 import { DisperserClient } from "./gen/disperser/DisperserServiceClientPb";
-import { sleep, lessThan2MB, MB, chunkData, dechunkData} from './utils';
+import { sleep, lessThan2MB, MB, toBase64, base64ToUint8Array, chunkData, dechunkData} from './utils';
 
 type TEigenDaOptions = {
     uri: "mainnet" | "testnet" | `http://${string}` | `https://${string}`;
@@ -12,9 +12,25 @@ type TPutOptions = {
 
 const BlobPollPeriodMs = 1000;
 
-type EigenBlob = {
-    id: bigint;
-    batchHeaderHash: Uint8Array | string;
+export class EigenBlob<T> {
+    id: [bigint, Uint8Array | string]
+    constructor(id: [bigint, Uint8Array | string]) {
+        this.id = id;
+    }
+    toString() {
+        return `${this.id[0].toString()}-${toBase64(this.id[1])}`
+    }
+
+    static from<A>(serialized: string): EigenBlob<A> {
+        const parts = serialized.split('-');
+        if (parts.length != 2) {
+            throw new Error('invalid eigenblob.');
+        }
+        return new EigenBlob([
+            BigInt(parts[0]),
+            base64ToUint8Array(parts[1])
+        ])
+    }
 }
 
 /**
@@ -47,7 +63,7 @@ export class EigenDA {
         }
     }
 
-    put<T>(item: T, options?: TPutOptions): Promise<EigenBlob> {  
+    put<T>(item: T, options?: TPutOptions): Promise<EigenBlob<T>> {  
         return new Promise((resolve, reject) => {
             const didTimeout = {
                 did: false,
@@ -107,10 +123,9 @@ export class EigenDA {
                         throw new Error('Failed to obtain Blob ID or Batch Header Hash');
                     }
 
-                    resolve({
-                        id: blobId!,
-                        batchHeaderHash: batchHeaderHash!
-                    });
+                    resolve(new EigenBlob<T>(
+                        [blobId!, batchHeaderHash!],
+                    ));
                 } catch(e) {
                    console.error('Error in put operation:', e);
                    reject(e)
@@ -121,21 +136,19 @@ export class EigenDA {
         });
     }
 
-    async get<T>(blobId: bigint, batchHeaderHash: Uint8Array | string): Promise<T> {
+    async get<T>(request: EigenBlob<T>): Promise<T> {
         try {
             const blob = await this.client.retrieveBlob(
                 new RetrieveBlobRequest()
-                    .setBlobIndex(Number(blobId))
-                    .setBatchHeaderHash(batchHeaderHash)
+                    .setBlobIndex(Number(request.id[0]))
+                    .setBatchHeaderHash(request.id[1])
             );
             const base64Data = blob.getData() as string;
             const chunkedContents = Buffer.from(base64Data, 'base64');
             const unchunkedContents = dechunkData(chunkedContents);
             const contentsAsText = new TextDecoder().decode(unchunkedContents);
-
             return JSON.parse(contentsAsText) as T;
         } catch (e) {
-            console.error('Detailed error in get operation:', e);
             if (e instanceof Error) {
                 console.error('Error name:', e.name);
                 console.error('Error message:', e.message);
