@@ -15,10 +15,17 @@ global.DecompressionStream = DecompressionStream;
 const SECONDS = 1000;
 
 it("should be able to post a blob", async () => {
-    const client = new EigenDA({uri: "http://localhost:7001"}); // defaults to testnet
+    const client = new EigenDA({
+      uri: "https://disperser-preprod-holesky-test.eigenda.xyz:443",
+    }); // defaults to testnet
 
     const resp = await client.put({hello: 'world'});
-    const blob = await client.get<any>(resp.id);
+
+    console.log('Response from put:', resp);
+    console.log('Response ID:', resp.id);
+
+
+    const blob = await client.get<any>(resp.id, resp.batchHeaderHash);
 
     expect(blob.hello).toEqual('world');
-}, 15 * SECONDS);
+}, 600 * SECONDS);
