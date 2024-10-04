@@ -45,7 +45,7 @@ export class EigenDA {
     client: DisperserClient;
 
     static ACCOUNT = "eigenda-ts"
-    static URI_TESTNET = "https://disperser-preprod-holesky-test.eigenda.xyz:443"
+    static URI_TESTNET = "https://disperser-holesky-web.eigenda.xyz:443"
 
     constructor(options?: TEigenDaOptions) {
         switch (options?.uri) {
