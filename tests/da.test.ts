@@ -37,7 +37,7 @@ it("can time out while waiting for a long-running blob task.", async () => {
 it("can cancel while waiting for a long-running blob task.", async () => {
   const client = new EigenDA({uri: TEST_URI});
   const resp = client.put({hello: 'world'});
-  await expect(resp.cancel()).rejects.toThrow(EigenDA.OPERATION_CANCELLED);
+  expect(resp.cancel()).rejects.toThrow(EigenDA.OPERATION_CANCELLED);
 }, 600 * SECONDS);
 
 it("should be able to post a binary blob", async () => {

@@ -144,6 +144,7 @@ export class EigenDA {
                 })
             }
             if (isCancelled()) {
+                didTimeout.completed = true;
                 return reject(new Error(EigenDA.OPERATION_CANCELLED));
             }
             (async () => {
@@ -170,7 +171,7 @@ export class EigenDA {
 
                     do  {
                         if (isCancelled()) {
-                            return reject(EigenDA.OPERATION_CANCELLED);
+                            return reject(new Error(EigenDA.OPERATION_CANCELLED));
                         }
                         await sleep(BlobPollPeriodMs);
                         let resp = await this.client.getBlobStatus(
