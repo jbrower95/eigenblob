@@ -1,6 +1,6 @@
 {
   "name": "@jbrower95/eigenblob",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Post blobs to EigenDA.",
   "main": "dist/index.js",
   "files": [
