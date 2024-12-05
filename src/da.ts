@@ -52,7 +52,7 @@ export class LongRunningCancellablePromise<T> {
                 timeout = setTimeout(() => {
                     state.timedOut = true;
                     if (!state.complete) {
-                        reject(new Error(`Operation timed out after ${deadlineMs}ms`));
+                        reject(new Error(EigenDA.WAIT_TIMED_OUT));
                     }
                 }, deadlineMs);
             }
