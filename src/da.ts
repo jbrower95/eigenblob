@@ -3,7 +3,7 @@ import { DisperserClient } from "./gen/disperser/DisperserServiceClientPb";
 import { sleep, lessThan2MB, MB, toBase64, base64ToUint8Array, chunkData, dechunkData} from './utils';
 
 type TEigenDaOptions = {
-    uri: "mainnet" | "testnet" | `http://${string}` | `https://${string}`;
+    uri: "testnet" | `http://${string}` | `https://${string}`;
 };
 
 type TPutOptions = {
@@ -33,6 +33,58 @@ export class EigenBlob<T> {
     }
 }
 
+export class LongRunningCancellablePromise<T> {
+    cancelled: boolean = false;
+    promise: Promise<T>;
+
+    constructor(body: (resolve: (e: T) => void, reject: (err: any) => void, isCancelled: () => boolean) => void) {
+         this.promise = new Promise((resolve, reject) => {
+            const isCancelled = () => this.cancelled;
+            body(resolve, reject, isCancelled)
+        });
+    }
+
+    wait(deadlineMs: number = -1): Promise<T | undefined> {
+        return new Promise((resolve, reject) => {
+            const state = {timedOut: false, complete: false};
+            let timeout: NodeJS.Timeout | undefined;
+            if (deadlineMs > 0) {
+                timeout = setTimeout(() => {
+                    state.timedOut = true;
+                    if (!state.complete) {
+                        reject(new Error(`Operation timed out after ${deadlineMs}ms`));
+                    }
+                }, deadlineMs);
+            }
+
+            this.promise.then((res) =>{
+                if (state.timedOut) {
+                    if (timeout) {
+                        clearTimeout(timeout);
+                    }
+                    return;
+                }
+                resolve(res);
+            }).catch(err => {
+                if (state.timedOut) {
+                    if (timeout) {
+                        clearTimeout(timeout);
+                    }
+                    return;
+                }
+                reject(err);
+            }).finally(() => {
+                state.complete = true;
+            })
+        });
+    }
+
+    async cancel(): Promise<void> {
+        this.cancelled = true;
+        await this.promise;
+    }
+}
+
 /**
  * A simple wrapper around EigenDA which;
  *      - automatically applies gzip(JSON(object)) before uploading.
@@ -44,13 +96,14 @@ export class EigenBlob<T> {
 export class EigenDA {
     client: DisperserClient;
 
+    static OPERATION_CANCELLED = "Operation cancelled.";
+    static WAIT_TIMED_OUT = "Operation timed out.";
+
     static ACCOUNT = "eigenda-ts"
     static URI_TESTNET = "https://disperser-holesky-web.eigenda.xyz:443"
 
     constructor(options?: TEigenDaOptions) {
         switch (options?.uri) {
-            case 'mainnet':
-                throw new Error("permissionless access to mainnet is not yet available.");
             case 'testnet':
                 this.client = new DisperserClient(EigenDA.URI_TESTNET);
                 break;
@@ -63,8 +116,21 @@ export class EigenDA {
         }
     }
 
-    put<T>(item: T, options?: TPutOptions): Promise<EigenBlob<T>> {  
-        return new Promise((resolve, reject) => {
+    /**
+     * Attempts to write a blob to EigenDA, which may take several minutes to finalize.
+     * 
+     *  - Await the result with `const res = client.put(...).wait(timeOut)`
+     *    (with an optional timeout)
+     *  - Cancel the long running result with `.cancel()`
+     * 
+     *  Use the returned type to `.get()`
+     * 
+     * @param item the JavaScript object to write to EigenDA.
+     * @param options additional options for the `.put()` -- a timeout.
+     * @returns 
+     */
+    put<T>(item: T, options?: TPutOptions): LongRunningCancellablePromise<EigenBlob<T>> {  
+        return new LongRunningCancellablePromise((resolve, reject, isCancelled) => {
             const didTimeout = {
                 did: false,
                 completed: false,
@@ -73,9 +139,12 @@ export class EigenDA {
                 setTimeout(() => {
                     if (!didTimeout.completed) {
                         didTimeout.did = true;
-                        reject("operation timed out.");
+                        reject(new Error(EigenDA.WAIT_TIMED_OUT));
                     }
                 })
+            }
+            if (isCancelled()) {
+                return reject(new Error(EigenDA.OPERATION_CANCELLED));
             }
             (async () => {
                 try {
@@ -100,6 +169,9 @@ export class EigenDA {
                     let batchHeaderHash: Uint8Array | string | undefined;
 
                     do  {
+                        if (isCancelled()) {
+                            return reject(EigenDA.OPERATION_CANCELLED);
+                        }
                         await sleep(BlobPollPeriodMs);
                         let resp = await this.client.getBlobStatus(
                             new BlobStatusRequest().setRequestId(requestId)
@@ -140,6 +212,25 @@ export class EigenDA {
         });
     }
 
+    /**
+     * Fetch a blob from EigenDA, given its blob ID. 
+     * 
+     * NOTE: 
+     * ====================================================================
+     * - Use EigenBlob.toString() to serialize the EigenBlob.
+     * - Use EigenBlob.from(str) to restore the EigenBlob.
+     * 
+     * example:
+     *  persist your blob id:
+     *      const blobId = await client.put({}).wait();
+     *      localStorage.setItem("my-blob", blobId.toString())
+     *  retrieve it:
+     *      const blobId = localStorage.getItem("my-blob");
+     *      const blobContents = await client.get(EigenBlob.from(blobId));
+     * ====================================================================
+     * @param request 
+     * @returns 
+     */
     async get<T>(request: EigenBlob<T>): Promise<T> {
         try {
             const blob = await this.client.retrieveBlob(

@@ -13,16 +13,40 @@ global.DecompressionStream = DecompressionStream;
 
 const SECONDS = 1000;
 
+const TEST_URI = "https://disperser-holesky-web.eigenda.xyz:443";
+
 it("should be able to post a JSON blob", async () => {
-    const client = new EigenDA();
-    const resp = await client.put({hello: 'world'});
+    const client = new EigenDA({uri: TEST_URI});
+
+    const resp = await client.put({hello: 'world'}).wait(500 * SECONDS);
+    expect(resp).not.toBeUndefined();
+    if (!resp) {
+      throw new Error()
+    }
+
     const blob = await client.get(resp);
     expect(blob.hello).toEqual('world');
 }, 600 * SECONDS);
 
+it("can time out while waiting for a long-running blob task.", async () => {
+  const client = new EigenDA({uri: TEST_URI});
+  const resp = client.put({hello: 'world'});
+  await expect(resp.wait(100)).rejects.toEqual(new Error(EigenDA.WAIT_TIMED_OUT));
+}, 600 * SECONDS);
+
+it("can cancel while waiting for a long-running blob task.", async () => {
+  const client = new EigenDA({uri: TEST_URI});
+  const resp = client.put({hello: 'world'});
+  await expect(resp.cancel()).rejects.toEqual(new Error(EigenDA.OPERATION_CANCELLED));
+}, 600 * SECONDS);
+
 it("should be able to post a binary blob", async () => {
-  const client = new EigenDA();
-  const resp = await client.put({pngBase64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAgUBdssEZAAAAABJRU5ErkJggg=='});
+  const client = new EigenDA({uri: TEST_URI});
+  const resp = await client.put({pngBase64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAgUBdssEZAAAAABJRU5ErkJggg=='}).wait();
+  if (!resp) {
+    throw new Error(`Failed to post in time.`);
+  }
+  
   const blob = await client.get(resp);
   expect(blob.pngBase64).not.toBeNull();
 }, 600 * SECONDS);
