@@ -1,4 +1,4 @@
-import { BlobStatus, BlobStatusRequest, DisperseBlobRequest, RetrieveBlobRequest } from "./gen/disperser/disperser_pb";
+import { BlobStatus, BlobStatusRequest, DisperseBlobRequest, RetrieveBlobRequest } from "./gen/disperser/disperser_pb.js";
 import { DisperserClient } from "./gen/disperser/DisperserServiceClientPb";
 import { sleep, lessThan2MB, MB, toBase64, base64ToUint8Array, chunkData, dechunkData} from './utils';
 
